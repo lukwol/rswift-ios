@@ -15,9 +15,7 @@ workspace = RSwift::WorkspaceProvider.workspace
 project = Xcodeproj::Project.open(Dir.glob('*.xcodeproj').first)
 device_udid = RSwift::DeviceProvider.udid_for_device(device_name, :ios)
 
-task :default => :simulator
-
-desc 'Build workspace'
+desc 'Build everything'
 task :build do
   output = ""
   IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'platform=iphonesimulator,id=#{device_udid}' -derivedDataPath #{DERIVED_DATA_PATH} | xcpretty").each do |line|
@@ -26,17 +24,61 @@ task :build do
   end
   success = output.include? "Build Succeeded"
   abort unless success
+
+  IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'generic/platform=iphoneos' -derivedDataPath '#{DERIVED_DATA_PATH}' | xcpretty").each do |line|
+    puts line.chomp
+    output << line.chomp
+  end
+  success = output.include? "Build Succeeded"
+  abort unless success
 end
 
+namespace :build do
+
+  desc 'Build simulator version'
+  task :simulator do
+    output = ""
+    IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'platform=iphonesimulator,id=#{device_udid}' -derivedDataPath #{DERIVED_DATA_PATH} | xcpretty").each do |line|
+      puts line.chomp
+      output << line.chomp
+    end
+    success = output.include? "Build Succeeded"
+    abort unless success
+  end
+
+  desc 'Build device version'
+  task :device do
+    output = ""
+    IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'generic/platform=iphoneos' -derivedDataPath '#{DERIVED_DATA_PATH}' | xcpretty").each do |line|
+      puts line.chomp
+      output << line.chomp
+    end
+    success = output.include? "Build Succeeded"
+    abort unless success
+  end
+end
+
+task :default => :simulator
+
 desc 'Run the simulator'
-task :simulator => [:build] do
+task :simulator => :'build:simulator' do
   system "xcrun instruments -w #{device_udid}"
-  system "xcrun simctl install booted #{DERIVED_DATA_PATH}/Build/Products/Debug-iphonesimulator/#{project.app_target.product_name}.app"
+  system "xcrun simctl install booted #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphonesimulator/#{project.app_target.product_name}.app"
   system "xcrun simctl launch booted #{project.app_target.debug_product_bundle_identifier}"
   if debug.to_i.nonzero?
     exec "lldb -n #{project.app_target.product_name}"
   else
     exec "tail -f ~/Library/Logs/CoreSimulator/#{device_udid}/system.log"
+  end
+end
+
+desc 'Deploy on the device'
+task :device => :'build:device' do
+  if debug.to_i.nonzero?
+    exec "ios-deploy --debug --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
+  else
+    system "ios-deploy --justlaunch --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
+    exec "cfgutil syslog"
   end
 end
 
