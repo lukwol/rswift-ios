@@ -77,8 +77,7 @@ task :device => :'build:device' do
   if debug.to_i.nonzero?
     exec "ios-deploy --debug --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
   else
-    system "ios-deploy --justlaunch --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
-    exec "cfgutil syslog"
+    exec "ios-deploy --justlaunch --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
   end
 end
 
