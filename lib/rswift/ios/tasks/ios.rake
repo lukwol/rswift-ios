@@ -77,7 +77,7 @@ task :device => :'build:device' do
   if debug.to_i.nonzero?
     exec "node_modules/.bin/ios-deploy --debug --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
   else
-    exec "node_modules/.bin/ios-deploy --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
+    exec "node_modules/.bin/ios-deploy --justlaunch --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
   end
 end
 
