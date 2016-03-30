@@ -15,35 +15,15 @@ workspace = RSwift::WorkspaceProvider.workspace
 project = Xcodeproj::Project.open(Dir.glob('*.xcodeproj').first)
 device_udid = RSwift::DeviceProvider.udid_for_device(device_name, :ios)
 
-namespace :build do
-
-  desc 'Build for simulator'
-  task :simulator do
-    output = ""
-    IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'platform=iphonesimulator,id=#{device_udid}' -derivedDataPath #{DERIVED_DATA_PATH} | xcpretty").each do |line|
-      puts line.chomp
-      output << line.chomp
-    end
-    success = output.include? "Build Succeeded"
-    abort unless success
-  end
-
-  desc 'Build for device'
-  task :device do
-    output = ""
-    IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'generic/platform=iphoneos' -derivedDataPath '#{DERIVED_DATA_PATH}' | xcpretty").each do |line|
-      puts line.chomp
-      output << line.chomp
-    end
-    success = output.include? "Build Succeeded"
-    abort unless success
-  end
-end
-
 task :default => :simulator
 
+desc 'Run the test/spec suite on the simulator'
+task :spec do
+  exec "xcodebuild test -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'platform=iphonesimulator,id=#{device_udid}' -derivedDataPath #{DERIVED_DATA_PATH} | xcpretty -tc"
+end
+
 desc 'Run the simulator'
-task :simulator => :'build:simulator' do
+task :simulator => :'simulator:build' do
   system "xcrun instruments -w #{device_udid}"
   system "xcrun simctl install booted #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphonesimulator/#{project.app_target.product_name}.app"
   system "xcrun simctl launch booted #{project.app_target.debug_product_bundle_identifier}"
@@ -54,8 +34,28 @@ task :simulator => :'build:simulator' do
   end
 end
 
+namespace :simulator do
+
+  desc 'Build for simulator'
+  task :build do
+    output = ""
+    IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'platform=iphonesimulator,id=#{device_udid}' -derivedDataPath #{DERIVED_DATA_PATH} | xcpretty").each do |line|
+      puts line.chomp
+      output = line.chomp
+    end
+    success = output.include? "Build Succeeded"
+    abort unless success
+  end
+
+  desc 'Clean all simulators'
+  task :clean do
+    system 'killall Simulator'
+    system 'xcrun simctl erase all'
+  end
+end
+
 desc 'Deploy on the device'
-task :device => :'build:device' do
+task :device => :'device:build' do
   if debug.to_i.nonzero?
     exec "node_modules/.bin/ios-deploy --debug --bundle #{DERIVED_DATA_PATH}/Build/Products/#{project.debug_build_configuration.name}-iphoneos/#{project.app_scheme_name}.app"
   else
@@ -63,16 +63,15 @@ task :device => :'build:device' do
   end
 end
 
-desc 'Run the test/spec suite on the simulator'
-task :spec do
-  exec "xcodebuild test -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'platform=iphonesimulator,id=#{device_udid}' -derivedDataPath #{DERIVED_DATA_PATH} | xcpretty -tc"
-end
-
-namespace :simulator do
-
-  desc 'Clean all simulators'
-  task :clean do
-    system 'killall Simulator'
-    system 'xcrun simctl erase all'
+namespace :device do
+  desc 'Build for device'
+  task :build do
+    output = ""
+    IO.popen("xcodebuild -workspace #{workspace} -scheme #{project.app_scheme_name} -destination 'generic/platform=iphoneos' -derivedDataPath '#{DERIVED_DATA_PATH}' | xcpretty").each do |line|
+      puts line.chomp
+      output = line.chomp
+    end
+    success = output.include? "Build Succeeded"
+    abort unless success
   end
 end
