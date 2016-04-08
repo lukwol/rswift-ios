@@ -1,5 +1,5 @@
 module RSwift
   module IOS
-    VERSION = '0.0.43'
+    VERSION = '0.0.52'
   end
 end
