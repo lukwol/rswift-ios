@@ -1,6 +1,7 @@
 # RSwift::IOS
 
 RSwift::IOS lets you execute rake commands specific to iOS project.
+
 RSwift::IOS uses rswift and rswift-shared gems.
 
 ## Installation
@@ -61,6 +62,7 @@ rake update:references  # Update file references
 Default task is `rake simulator`
 
 To select simulator for tasks `rake simulator` and `rake spec` set device_name, for example `device_name='iPad Air 2'`.
+
 Additionaly tasks `rake simulator` and `rake device` can be executed with flag `debug=1`, which enables LLDB.
 
 ## Development
